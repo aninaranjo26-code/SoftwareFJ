@@ -1,4 +1,3 @@
-
 """Punto de entrada y pruebas funcionales de Software FJ."""
 
 import logging
@@ -10,11 +9,15 @@ from reservas import Reserva
 from gestor import GestorSoftwareFJ
 
 
-# Crear la carpeta de registros automáticamente.
-os.makedirs("logs", exist_ok=True)
+# Crear la carpeta de registros junto a este archivo.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+LOG_FILE = os.path.join(LOG_DIR, "softwarefj.log")
+
+os.makedirs(LOG_DIR, exist_ok=True)
 
 logging.basicConfig(
-    filename=os.path.join("logs", "softwarefj.log"),
+    filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     encoding="utf-8",

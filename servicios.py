@@ -1,9 +1,12 @@
-
 """Clases de servicios del sistema Software FJ."""
 
 from abc import ABC, abstractmethod
-from excepciones import ServicioError, ValidacionError
 
+from excepciones import (
+    ServicioError,
+    ValidacionError,
+    DisponibilidadError,
+)
 
 class Servicio(ABC):
     """Clase abstracta que define el comportamiento de un servicio."""
@@ -16,7 +19,9 @@ class Servicio(ABC):
     @staticmethod
     def _validar_texto(valor, campo):
         if not isinstance(valor, str) or not valor.strip():
-            raise ValidacionError(f"{campo} del servicio es obligatorio.")
+            raise ValidacionError(
+                f"{campo} del servicio es obligatorio."
+            )
         return valor.strip()
 
     @staticmethod
@@ -43,7 +48,7 @@ class Servicio(ABC):
 
     @abstractmethod
     def calcular_costo(self, duracion):
-        """Calcula el costo según el tipo de servicio y su duración."""
+        """Calcula el costo según el tipo de servicio."""
         raise NotImplementedError
 
     @abstractmethod
@@ -54,7 +59,6 @@ class Servicio(ABC):
     def __str__(self):
         return self.obtener_descripcion()
 
-
 class ReservaSala(Servicio):
     """Servicio de alquiler de salas por horas."""
 
@@ -62,10 +66,14 @@ class ReservaSala(Servicio):
         super().__init__(codigo, nombre, tarifa_base)
 
         if isinstance(capacidad, bool) or not isinstance(capacidad, int):
-            raise ServicioError("La capacidad debe ser un número entero.")
+            raise ServicioError(
+                "La capacidad debe ser un número entero."
+            )
 
         if capacidad <= 0:
-            raise ServicioError("La capacidad debe ser mayor que cero.")
+            raise ServicioError(
+                "La capacidad debe ser mayor que cero."
+            )
 
         self._capacidad = capacidad
 
@@ -85,14 +93,17 @@ class ReservaSala(Servicio):
 
     @staticmethod
     def _validar_duracion(duracion):
-        if isinstance(duracion, bool) or not isinstance(duracion, (int, float)):
+        if isinstance(duracion, bool) or not isinstance(
+            duracion, (int, float)
+        ):
             raise ServicioError("La duración debe ser numérica.")
 
         if duracion <= 0:
-            raise ServicioError("La duración debe ser mayor que cero.")
+            raise ServicioError(
+                "La duración debe ser mayor que cero."
+            )
 
         return float(duracion)
-
 
 class AlquilerEquipo(Servicio):
     """Servicio de alquiler de equipos por horas."""
@@ -104,10 +115,14 @@ class AlquilerEquipo(Servicio):
             isinstance(cantidad_disponible, bool)
             or not isinstance(cantidad_disponible, int)
         ):
-            raise ServicioError("La cantidad disponible debe ser un entero.")
+            raise ServicioError(
+                "La cantidad disponible debe ser un entero."
+            )
 
         if cantidad_disponible < 0:
-            raise ServicioError("La cantidad disponible no puede ser negativa.")
+            raise ServicioError(
+                "La cantidad disponible no puede ser negativa."
+            )
 
         self._cantidad_disponible = cantidad_disponible
 
@@ -115,18 +130,39 @@ class AlquilerEquipo(Servicio):
     def cantidad_disponible(self):
         return self._cantidad_disponible
 
-    def calcular_costo(self, duracion, cantidad=1):
-        """Permite calcular el costo para una o varias unidades."""
-        duracion = ReservaSala._validar_duracion(duracion)
+    def reservar_equipos(self, cantidad):
+        """Descuenta unidades disponibles al confirmar una reserva."""
+        self._validar_cantidad(cantidad)
 
+        if cantidad > self._cantidad_disponible:
+            raise DisponibilidadError(
+                "No hay suficientes equipos disponibles."
+            )
+
+        self._cantidad_disponible -= cantidad
+
+    def devolver_equipos(self, cantidad):
+        """Devuelve las unidades de una reserva cancelada."""
+        self._validar_cantidad(cantidad)
+        self._cantidad_disponible += cantidad
+
+    @staticmethod
+    def _validar_cantidad(cantidad):
         if isinstance(cantidad, bool) or not isinstance(cantidad, int):
-            raise ServicioError("La cantidad debe ser un número entero.")
+            raise ServicioError(
+                "La cantidad debe ser un número entero."
+            )
 
         if cantidad <= 0:
-            raise ServicioError("La cantidad debe ser mayor que cero.")
+            raise ServicioError(
+                "La cantidad debe ser mayor que cero."
+            )
 
-        if cantidad > self.cantidad_disponible:
-            raise ServicioError("No hay suficientes equipos disponibles.")
+    def calcular_costo(self, duracion, cantidad=1):
+        """Calcula el costo por duración y número de unidades."""
+        duracion = ReservaSala._validar_duracion(duracion)
+        self._validar_cantidad(cantidad)
+
 
         return self.tarifa_base * duracion * cantidad
 
@@ -136,7 +172,6 @@ class AlquilerEquipo(Servicio):
             f"Disponibles: {self.cantidad_disponible} | "
             f"Tarifa por hora y unidad: ${self.tarifa_base:.2f}"
         )
-
 
 class AsesoriaEspecializada(Servicio):
     """Servicio de asesoría especializada por horas."""
@@ -157,6 +192,7 @@ class AsesoriaEspecializada(Servicio):
 
     def obtener_descripcion(self):
         return (
-            f"Asesoría: {self.nombre} | Especialidad: {self.especialidad} | "
+            f"Asesoría: {self.nombre} | "
+            f"Especialidad: {self.especialidad} | "
             f"Tarifa por hora: ${self.tarifa_base:.2f}"
         )
